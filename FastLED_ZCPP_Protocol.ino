@@ -20,7 +20,7 @@
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 #define FASTLED_ALLOW_INTERRUPTS 0
 #include "ESPAsyncZCPP.h" //https://github.com/keithsw1111/ESPixelStick
-#include <FastLED.h> //https://github.com/keithsw1111/ESPixelStick
+#include <FastLED.h> //https://github.com/FastLED/FastLED
 FASTLED_USING_NAMESPACE
 
 // FASTLED SETUP
