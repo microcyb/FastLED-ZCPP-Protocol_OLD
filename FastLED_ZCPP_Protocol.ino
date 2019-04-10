@@ -36,8 +36,8 @@ uint8_t BRIGHTNESSINDEX = 	20;
 // DEFINE THE LEDS PER PIN OUTPUT
 CRGB leds[NUM_LEDS];
 
-const char ssid[] = "........";         // Replace with your SSID
-const char passphrase[] = "........";   // Replace with your WPA2 passphrase
+const char ssid[] = "URAWHAT";         // Replace with your SSID
+const char passphrase[] = "hacker645";   // Replace with your WPA2 passphrase
 
 ESPAsyncZCPP        zcpp(10);       // ESPAsyncZCPP with X buffers
 
@@ -53,6 +53,10 @@ IPAddress ip(192, 168, 1, 10);
 IPAddress gateway(192, 168, 1, 1); // set gateway to match your network
 IPAddress subnet(255, 255, 255, 0); // set subnet mask to match your network
 
+const char VERSION[] = "3.1-dev";
+const char id[] = "ESPixelStick";
+
+
 void setup() {
     Serial.begin(115200);
     delay(10);
@@ -62,27 +66,10 @@ void setup() {
     FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.clear();
 
-   // WIFI SETUP
+	// WIFI SETUP
 	WiFi.config(ip, gateway, subnet);
     WiFi.mode(WIFI_STA);
-
-    Serial.println("");
-    Serial.print(F("Connecting to "));
-    Serial.print(ssid);
-
-    if (passphrase != NULL)
-        WiFi.begin(ssid, passphrase);
-    else
-        WiFi.begin(ssid);
-
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.print(F("Connected with IP: "));
-    Serial.println(WiFi.localIP());
+	ConnectWifi();
 
 	// ZCPP INITALIZATION
 	ourLocalIP = WiFi.localIP();
@@ -104,7 +91,6 @@ void loop() {
 
 	while (!zcpp.isEmpty() && !abortPacketRead) {
 		zcpp.pull(&zcppPacket);
-
 		uint8_t seq = zcppPacket.Data.sequenceNumber;
 		uint16_t offset = htons(zcppPacket.Data.frameAddress);
 		bool frameLast = zcppPacket.Data.flags & ZCPP_DATA_FLAG_LAST;
@@ -125,15 +111,11 @@ void loop() {
 			seqZCPPTracker = seq + 1;
 		zcpp.stats.num_packets++;
 		for (int i = 0; i < NUM_LEDS; i++) {
-			//for (int j = offset; j < offset + len; j++) {
 			int j = i * 3;
 			leds[i].setRGB(zcppPacket.Data.data[j], zcppPacket.Data.data[j+1], zcppPacket.Data.data[j+2]);
-			//}
 		}
-		FastLED.show();
-
+	FastLED.show();
 	}
-
 }
 
 void ZCPPSub() {
@@ -144,3 +126,61 @@ void ZCPPSub() {
     igmp_joingroup(&ifaddr, &multicast_addr);
 }
 
+boolean ConnectWifi(void) {
+	boolean state = true;
+	int i = 0;
+	WiFi.begin(ssid, passphrase);
+	Serial.println("");
+	Serial.println("Connecting to WiFi");
+	Serial.print("Connecting");
+	while (WiFi.status() != WL_CONNECTED) {
+		leds[i] = CRGB::Blue;
+		FastLED.show();
+		delay(500);
+		Serial.print(".");
+		if (i > 10){
+			state = false;
+			break;
+		}
+	i++;
+	}
+	if (state){
+		Serial.println("");
+		Serial.print("Connected to ");
+		Serial.println(ssid);
+		Serial.print("IP address: ");
+		Serial.println(WiFi.localIP());
+		Connected();
+	} else {
+		Serial.println("");
+		Serial.println("Connection failed.");
+		Error();
+	}
+	FastLED.clear();
+	return state;
+}
+
+void allOff() {
+	fill_solid(leds, NUM_LEDS, CRGB::Black);
+	FastLED.show();
+	FastLED.clear();
+}
+
+void Error() {
+	fill_solid(leds, NUM_LEDS, CRGB::Red);
+	FastLED.show();
+    delay(2000);
+    FastLED.clear();
+    allOff();
+    ConnectWifi();
+    //resetFunc(); //call reset
+}
+
+void Connected() {
+	fill_solid(leds, NUM_LEDS, CRGB::Green);
+	FastLED.show();
+    delay(1000);
+    FastLED.clear();
+    allOff();
+    FastLED.clear();
+}
