@@ -17,21 +17,19 @@
 *
 */
 #define FASTLED_SHOW_CORE 0
-#define FASTLED_ESP8266_RAW_PIN_ORDER
+#define FASTLED_ESP32_RAW_PIN_ORDER
 #define FASTLED_ALLOW_INTERRUPTS 0
-#include "ESPAsyncZCPP.h" //https://github.com/keithsw1111/ESPixelStick
-#include <FastLED.h> //https://github.com/FastLED/FastLED
+#include "ESPAsyncZCPP.h"
+#include <FastLED.h>
 FASTLED_USING_NAMESPACE
 
 // FASTLED SETUP
 #define MILLI_AMPS  		60000 // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
-#define VOLTS			5
+#define VOLTS				5
 uint8_t BRIGHTNESSINDEX = 	20;
-#define START_UNIVERSE 		1      /* Universe to listen for */
-#define CHANNEL_START 		1 /* Channel to start listening at */
 
-#define NUM_LEDS		256
-#define DATA_PIN    		D1
+#define NUM_LEDS			256
+#define DATA_PIN    		3
 #define LED_TYPE    		WS2812B
 #define COLOR_ORDER 		GRB
 
@@ -62,6 +60,7 @@ void setup() {
 	FastLED.setBrightness(BRIGHTNESSINDEX);
 	FastLED.setMaxPowerInVoltsAndMilliamps(VOLTS, MILLI_AMPS);
     FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    FastLED.clear();
 
    // WIFI SETUP
 	WiFi.config(ip, gateway, subnet);
@@ -105,6 +104,7 @@ void loop() {
 
 	while (!zcpp.isEmpty() && !abortPacketRead) {
 		zcpp.pull(&zcppPacket);
+
 		uint8_t seq = zcppPacket.Data.sequenceNumber;
 		uint16_t offset = htons(zcppPacket.Data.frameAddress);
 		bool frameLast = zcppPacket.Data.flags & ZCPP_DATA_FLAG_LAST;
@@ -123,11 +123,12 @@ void loop() {
 		}
 		if (frameLast)
 			seqZCPPTracker = seq + 1;
-
 		zcpp.stats.num_packets++;
-		for (int i = offset; i < offset + len; i++) {
-		//	pixel setValue(i, zcppPacket.Data.data[i - offset]);
-			leds[i].setRGB(zcppPacket.Data.data[i - offset], zcppPacket.Data.data[i - offset], zcppPacket.Data.data[i - offset]);
+		for (int i = 0; i < NUM_LEDS; i++) {
+			//for (int j = offset; j < offset + len; j++) {
+			int j = i * 3;
+			leds[i].setRGB(zcppPacket.Data.data[j], zcppPacket.Data.data[j+1], zcppPacket.Data.data[j+2]);
+			//}
 		}
 		FastLED.show();
 
